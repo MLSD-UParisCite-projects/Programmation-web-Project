@@ -200,6 +200,7 @@ The course scripts hard-code column names (EF/CA, Sex/Level). We make them work 
 - [ ] Binary only, or multi-class too?
 - [ ] Which case-study dataset?
 - [ ] How is the work split between the 3 members?
+- [x] Git workflow: work directly on `main` (small project, branches not needed; decided 2026-11-16). Always `git pull` before starting.
 
 ## Decision log
 
@@ -227,3 +228,4 @@ The course scripts hard-code column names (EF/CA, Sex/Level). We make them work 
 | 2026-11-10 | **Phase 2 complete**: added IQR outliers (keep/cap/drop), rare categories grouping into "Autre", column merging (sum/mean/diff/ratio/concat) in `R/nettoyage.R`, and learned transformations config + train-only fit/apply in `R/transformations.R` + `modules/mod_preparation.R`. |
 | 2026-11-10 | **Phase 4 complete**: created `R/modelisation.R` (stratified split, zero-leakage train/test preprocessing, logistic regression + Random Forest with auto-tune, metrics, ROC, feature importance, run history) and `modules/mod_modelisation.R`, connected in `app.R`. |
 | 2026-11-10 | **Phase 3 complete**: created `R/exploration.R` and `modules/mod_exploration.R` (Course 1 univariate tables/plots + Course 2 bivariate Quant×Quant, Quant×Qual, Qual×Qual + correlation heatmap), connected in `app.R`. |
+| 2026-11-16 | Review of Moncif's commits (Phases 2–4): all 96 preprocessing/model option combos run, no data leakage (z-score fitted on train only), stratified split OK, multi-class targets refused with a clear message, tabs 3–4 and the app start without errors. Minor point: `global.R` calls `install.packages()` when a package is missing (fine locally, avoid on shinyapps.io). Next: Phase 5 case study + Phase 6 tests/deploy. |
