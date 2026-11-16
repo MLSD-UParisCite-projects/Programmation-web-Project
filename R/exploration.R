@@ -105,7 +105,7 @@ tracer_uni_histogramme <- function(x, nom, regle_bins = "Sturges",
     val,
     breaks = regle_bins,
     freq   = !en_densite,
-    col    = "lightblue",
+    col    = COULEURS[["remplissage"]],
     border = "white",
     main   = sprintf("Histogramme de %s (règle : %s)", nom, regle_bins),
     xlab   = nom,
@@ -115,7 +115,7 @@ tracer_uni_histogramme <- function(x, nom, regle_bins = "Sturges",
 
   # Courbe de densité empirique (uniquement si l'axe Y est en densité)
   if (en_densite && afficher_densite && length(val) >= 3) {
-    graphics::lines(stats::density(val), col = "#dc2626", lwd = 2)
+    graphics::lines(stats::density(val), col = COULEURS[["accent"]], lwd = 2)
   }
 
   # Lignes verticales des quantiles (Q1, Médiane, Q3) et de la moyenne
@@ -143,7 +143,7 @@ tracer_uni_boxplot <- function(x, nom, afficher_rug = TRUE) {
   graphics::boxplot(
     val,
     horizontal = TRUE,
-    col        = "lightblue",
+    col        = COULEURS[["remplissage"]],
     main       = paste("Boîte à moustaches de", nom),
     xlab       = nom,
     las        = 1
@@ -162,7 +162,7 @@ tracer_uni_ecdf <- function(x, nom) {
     main = paste("Fonction de répartition empirique (ECDF) —", nom),
     xlab = nom,
     ylab = "Fréquence cumulée F(x)",
-    col  = "#2563eb",
+    col  = COULEURS[["principale"]],
     lwd  = 2,
     las  = 1
   )
@@ -178,7 +178,7 @@ tracer_uni_barres <- function(x, nom, en_frequence = FALSE) {
   bp <- graphics::barplot(
     hauteurs,
     names.arg = names(eff),
-    col       = "steelblue",
+    col       = COULEURS[["principale"]],
     border    = "white",
     main      = paste("Diagramme en barres —", nom),
     ylab      = if (en_frequence) "Fréquence (%)" else "Effectifs",
@@ -289,7 +289,7 @@ tracer_bi_nuage <- function(d, nom_x, nom_y, afficher_lm = TRUE) {
 
   if (afficher_lm) {
     p <- p + ggplot2::geom_smooth(method = "lm", formula = y ~ x,
-                                  color = "#dc2626", fill = "#fecaca", se = TRUE)
+                                  color = COULEURS[["accent"]], fill = "#fecaca", se = TRUE)
   }
   p
 }
@@ -310,8 +310,8 @@ tracer_bi_histbackback <- function(x, y, nom_x, nom_y) {
   } else {
     old_par <- graphics::par(mfrow = c(1, 2))
     on.exit(graphics::par(old_par))
-    graphics::hist(x, probability = TRUE, col = "lightblue", main = nom_x, xlab = nom_x)
-    graphics::hist(y, probability = TRUE, col = "lightgreen", main = nom_y, xlab = nom_y)
+    graphics::hist(x, probability = TRUE, col = COULEURS[["remplissage"]], main = nom_x, xlab = nom_x)
+    graphics::hist(y, probability = TRUE, col = COULEURS[["remplissage2"]], main = nom_y, xlab = nom_y)
   }
 }
 
@@ -549,7 +549,7 @@ tracer_heatmap_correlation <- function(d, methode = "pearson") {
     ggplot2::geom_tile(color = "white", linewidth = 0.8) +
     ggplot2::geom_text(ggplot2::aes(label = sprintf("%.2f", Correlation)),
                        size = 3.8, color = "#0f172a") +
-    ggplot2::scale_fill_gradient2(low = "#2563eb", mid = "white", high = "#dc2626",
+    ggplot2::scale_fill_gradient2(low = COULEURS[["principale"]], mid = "white", high = COULEURS[["accent"]],
                                   midpoint = 0, limits = c(-1, 1)) +
     ggplot2::labs(
       title = sprintf("Matrice de corrélation (%s)",

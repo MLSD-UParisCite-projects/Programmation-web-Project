@@ -12,6 +12,8 @@ ui <- navbarPage(
   # Titre de l'application
   title = "Exploration & Classification",
   id    = "onglets",                 # identifiant : permet de changer d'onglet depuis le serveur
+  theme = theme_app,                 # thème Bootstrap 5 (R/theme.R)
+  header = tags$head(tags$link(rel = "stylesheet", href = "styles.css")),
 
   tabPanel("1. Données",       mod_donnees_ui("donnees")),
   tabPanel("2. Préparation",   mod_preparation_ui("preparation")),

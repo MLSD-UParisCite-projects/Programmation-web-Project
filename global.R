@@ -7,7 +7,7 @@
 # ==================================================================
 
 # Installation automatique des packages s'ils manquent sur la machine locale
-pkgs_requis <- c("shiny", "DT", "ggplot2", "randomForest", "pROC", "Hmisc")
+pkgs_requis <- c("shiny", "bslib", "DT", "ggplot2", "randomForest", "pROC", "Hmisc")
 pkgs_manquants <- pkgs_requis[!sapply(pkgs_requis, requireNamespace, quietly = TRUE)]
 if (length(pkgs_manquants) > 0) {
   message("Installation automatique des packages manquants : ",
@@ -16,6 +16,7 @@ if (length(pkgs_manquants) > 0) {
 }
 
 library(shiny)
+library(bslib)
 library(DT)
 library(ggplot2)
 library(randomForest)

@@ -192,8 +192,8 @@ mod_donnees_server <- function(id) {
     output$bilan <- renderUI({
       a <- alertes()
       if (nrow(a) == 0)
-        return(p(style = "color: green;", "Aucun problème détecté."))
-      p(style = "color: #b45309;",
+        return(p(class = "texte-ok", icon("check"), " Aucun problème détecté."))
+      p(class = "texte-attention", icon("triangle-exclamation"), " ",
         sprintf("%d problème(s) détecté(s) : %d sur des colonnes, %d sur des lignes.",
                 nrow(a), sum(a$Niveau == "colonne"), sum(a$Niveau == "lignes")))
     })
@@ -234,9 +234,9 @@ mod_donnees_server <- function(id) {
 
     output$alertes_cible <- renderUI({
       v <- verifier_cible(data_finales()[[input$cible]], input$cible, alertes())
-      couleurs <- c(erreur = "#c62828", attention = "#b45309", info = "#2e7d32")
+      classes <- c(erreur = "texte-erreur", attention = "texte-attention", info = "texte-ok")
       tagList(lapply(seq_len(nrow(v)), function(i)
-        p(style = paste0("color:", couleurs[[v$Gravite[i]]], ";"),
+        p(class = classes[[v$Gravite[i]]],
           strong(paste0(toupper(v$Gravite[i]), " : ")), v$Message[i])))
     })
 
@@ -248,7 +248,7 @@ mod_donnees_server <- function(id) {
     output$plot_cible <- renderPlot({
       y <- data_finales()[[input$cible]]
       req(length(unique(y[!is.na(y)])) <= MAX_CLASSES)
-      barplot(table(y), col = "steelblue", las = 2,
+      barplot(table(y), col = COULEURS[["principale"]], las = 2,
               main = "", ylab = "Effectifs", xlab = input$cible)
     })
 
@@ -296,14 +296,14 @@ mod_donnees_server <- function(id) {
     # Statut affiché sous le bouton
     output$statut <- renderUI({
       if (is.null(valide$data))
-        return(p(style = "color: grey; margin-top: 8px;", "Non validé"))
+        return(p(class = "statut texte-neutre", "Non validé"))
       a_jour <- isTRUE(input$cible == valide$cible) &&
                 isTRUE(identical(data_finales(), valide$data))
       if (a_jour)
-        p(style = "color: #2e7d32; margin-top: 8px;",
+        p(class = "statut texte-ok",
           icon("check"), sprintf(" Validé (cible : %s)", valide$cible))
       else
-        p(style = "color: #b45309; margin-top: 8px;",
+        p(class = "statut texte-attention",
           icon("triangle-exclamation"), " Modifications non validées")
     })
 

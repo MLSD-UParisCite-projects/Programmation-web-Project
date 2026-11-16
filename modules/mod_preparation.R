@@ -90,7 +90,7 @@ mod_preparation_ui <- function(id) {
         # ---- Sous-onglet 2 : Transformations apprises (sans fuite de données) ----
         tabPanel("2. Transformations",
           br(),
-          p(style = "color: #1e40af; background: #eff6ff; padding: 8px; border-radius: 4px;",
+          p(class = "encart encart-info",
             icon("shield-halved"),
             " Pour éviter toute fuite de données (data leakage), ces transformations sont ",
             strong("configurées ici"), " mais leurs paramètres (moyenne, médiane, mode, ",
@@ -492,7 +492,7 @@ mod_preparation_server <- function(id, donnees) {
       d1 <- data_courante()
       out0 <- sum(sapply(d0, nb_outliers), na.rm = TRUE)
       out1 <- sum(sapply(d1, nb_outliers), na.rm = TRUE)
-      div(style = "background: #f8fafc; border-left: 4px solid #0284c7; padding: 10px; margin-bottom: 12px;",
+      div(class = "encart",
           strong(sprintf("Étapes appliquées : %d", length(rv$h) - 1)), br(),
           sprintf("Lignes : %d → %d  |  Colonnes : %d → %d  |  NA : %d → %d  |  Outliers (IQR) : %d → %d",
                   nrow(d0), nrow(d1), ncol(d0), ncol(d1),

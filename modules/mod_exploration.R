@@ -140,9 +140,7 @@ mod_exploration_server <- function(id, preparation) {
 
     output$badge_type_uni <- renderUI({
       type_txt <- if (est_quanti_uni()) "Variable quantitative (numérique)" else "Variable qualitative (catégorielle)"
-      couleur  <- if (est_quanti_uni()) "#0284c7" else "#7c3aed"
-      div(style = sprintf("background: %s15; color: %s; padding: 6px 10px; border-radius: 4px; font-weight: bold;",
-                          couleur, couleur),
+      div(class = paste("badge-type", if (est_quanti_uni()) "badge-quanti" else "badge-quali"),
           type_txt)
     })
 
@@ -270,7 +268,7 @@ mod_exploration_server <- function(id, preparation) {
         "quanti_quali"  = "Quantitatif × Qualitatif (ANOVA & Rapport η²)",
         "quali_quali"   = "Qualitatif × Qualitatif (Contingence, χ² & V de Cramér)"
       )
-      div(style = "background: #f0fdf4; color: #166534; padding: 6px 10px; border-radius: 4px; font-weight: bold;",
+      div(class = "badge-type badge-croisement",
           lib)
     })
 

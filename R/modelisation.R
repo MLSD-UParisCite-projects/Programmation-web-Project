@@ -503,7 +503,7 @@ tracer_importance <- function(df_imp, lab_y = "Importance", top_n = 15) {
   df <- head(df_imp[order(-df_imp$Importance), , drop = FALSE], top_n)
 
   ggplot2::ggplot(df, ggplot2::aes(x = stats::reorder(Variable, Importance), y = Importance)) +
-    ggplot2::geom_col(fill = "steelblue") +
+    ggplot2::geom_col(fill = COULEURS[["principale"]]) +
     ggplot2::coord_flip() +
     ggplot2::labs(x = "", y = lab_y) +
     ggplot2::theme_minimal(base_size = 12)

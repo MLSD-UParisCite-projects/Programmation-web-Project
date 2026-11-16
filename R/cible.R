@@ -52,10 +52,26 @@ verifier_cible <- function(y, nom, alertes = NULL) {
         names(which.min(freq)), 100 * min(freq)))
     if (n_dist == 2)
       res[[length(res) + 1]] <- msg("info", "Cible binaire (2 classes).")
+    else
+      res[[length(res) + 1]] <- msg("info", sprintf(
+        "Cible à %d classes : dans l'onglet 4, les modèles comparent la classe positive choisie aux autres classes regroupées (un contre tous).",
+        n_dist))
   }
 
   if (length(res) == 0) return(msg(character(0), character(0)))
   do.call(rbind, res)
+}
+
+# Un contre tous : la classe positive garde son nom, les autres classes
+# sont regroupées (pour entraîner des modèles binaires sur une cible à
+# plus de 2 classes). Renvoie d avec la cible recodée en facteur à 2 niveaux.
+binariser_cible <- function(d, cible, classe_positive) {
+  y <- as.character(d[[cible]])
+  autres <- "Autres"
+  while (autres %in% y) autres <- paste0(autres, "_")   # évite un nom déjà pris
+  d[[cible]] <- factor(ifelse(is.na(y), NA, ifelse(y == classe_positive, classe_positive, autres)),
+                       levels = c(autres, classe_positive))
+  d
 }
 
 # Prépare la cible pour la classification : toujours un facteur

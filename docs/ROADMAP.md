@@ -156,6 +156,8 @@ The course scripts hard-code column names (EF/CA, Sex/Level). We make them work 
 - [x] Table comparing the models side by side
 - [x] **Feature importance** (Random Forest importance, logistic coefficients)
 - [x] Handle multi-class targets (macro-averaged metrics, one-vs-rest ROC), or limit the app to binary targets and say so
+  - [x] Multi-class targets trained **one-vs-rest**: the chosen positive class vs the other classes grouped (`binariser_cible()` in `R/cible.R`); tab 1 says so when the target is picked, tab 4 shows a note under the positive class
+- [x] Results summary shows the positive class and threshold **used for the run** (not the current sliders), with a warning when the sidebar has changed since training
 
 > **Note: history of model results**
 > Every training run is saved in a **results history** so we can compare runs, not just the models of the current run:
@@ -165,6 +167,27 @@ The course scripts hard-code column names (EF/CA, Sex/Level). We make them work 
 > - buttons to **delete a run** or **clear the history**, and to **export it as CSV** (useful for the case study report)
 > - in Shiny: a list inside `reactiveValues`, e.g. `rv$model_history`, with one entry added each time "Train" is clicked
 > - this makes it easy to answer questions like *"did normalization improve the Random Forest?"*
+
+## UX review fixes (Thai, 2026-11-16)
+
+Full review in [evaluation-ux.md](evaluation-ux.md). Two issues fixed so far, both in tab 4.
+
+**1. Multi-class targets are trained one-vs-rest (they used to be refused)**
+- Before: tab 1 accepted a target with 3 to 20 classes, but tab 4 stopped at "Entraîner" with "la modélisation binaire nécessite exactement 2 classes". Dermatology (6 classes), Cardiotocography and Mice Protein from the brief all hit this, after the whole preparation and exploration.
+- Now: the positive class chosen in tab 4 keeps its name and the other classes are grouped into `"Autres"` just before the train/test split. Metrics, ROC and importance work unchanged since they were already computed against the positive class.
+- Exploration (tab 3) still sees all the original classes: the grouping only happens inside the training step.
+- What the user sees: tab 1 shows an info line when the target is picked ("Cible à N classes : ... un contre tous"), tab 4 shows a note under "Classe positive", the results summary says "Un contre tous : 'X' contre les N-1 autres classes regroupées", and the run history records it in the split column.
+- Code: new `binariser_cible(d, cible, classe_positive)` in `R/cible.R` (uses `"Autres_"` if a class is already called `"Autres"`); new message in `verifier_cible()`; the 2-class check in `mod_modelisation.R` now only refuses a target with a single class.
+- To compare classes, train once per positive class: each run is a separate line in the run history.
+
+**2. The results summary shows the settings of the run, not the current sliders**
+- Before: the banner above the metrics read `input$classe_positive` and `input$seuil` live. Moving the threshold after training changed the banner while the metrics, ROC and confusion matrices still came from the old run.
+- Now: the positive class, threshold, number of classes and a snapshot of every sidebar setting (`parametres_courants()`: data, transformations, split, seed, variables, model parameters) are saved in `rv$dernier` when "Entraîner" is clicked. The banner shows the saved values.
+- If any setting changes after training, an orange notice says the results still match the old settings and asks to retrain. It goes away if the setting is put back.
+
+**Test** (headless, `testServer` on iris, positive class `versicolor`): both models train (AUC 0.74 logistic, 0.98 Random Forest), 2 runs added to the history, banner keeps "seuil = 0.50" after moving the slider to 0.7 and shows the notice, notice disappears when set back to 0.5.
+
+**Still to do from the review** (see Phase 6): progress + disabled button while training, confirmation before reset / clear history, empty first screen and the English "Load" label, outlier defaults, cleaning feedback, French error messages, labelled confusion matrices, plot alt text.
 
 ## Phase 5: Case study (brief point 3)
 
@@ -177,6 +200,8 @@ The course scripts hard-code column names (EF/CA, Sex/Level). We make them work 
 - [ ] Test with several datasets (small/large, binary/multi-class, with or without missing values)
 - [ ] Error handling (`req()`, `validate()`, clear messages instead of crashes)
 - [ ] Clean up the interface (labels, help texts)
+- [x] Visual theme: Bootstrap 5 via `bslib` (`R/theme.R`, one palette for the interface and the plots), `www/styles.css` with named classes instead of inline styles (summary boxes, notices, type badges, status texts)
+- [ ] Remaining UX fixes from `docs/evaluation-ux.md`: progress + disabled button while training, confirm before reset / clear history, empty first screen + "Load" label, outlier defaults, cleaning feedback, French error messages, labelled confusion matrices, plot alt text
 - [ ] Deploy the final version and check the URL works
 - [ ] Put the URL in the groups file **before 31/01/2027, 20:00**
 
@@ -229,3 +254,5 @@ The course scripts hard-code column names (EF/CA, Sex/Level). We make them work 
 | 2026-11-10 | **Phase 4 complete**: created `R/modelisation.R` (stratified split, zero-leakage train/test preprocessing, logistic regression + Random Forest with auto-tune, metrics, ROC, feature importance, run history) and `modules/mod_modelisation.R`, connected in `app.R`. |
 | 2026-11-10 | **Phase 3 complete**: created `R/exploration.R` and `modules/mod_exploration.R` (Course 1 univariate tables/plots + Course 2 bivariate Quant×Quant, Quant×Qual, Qual×Qual + correlation heatmap), connected in `app.R`. |
 | 2026-11-16 | Review of Moncif's commits (Phases 2–4): all 96 preprocessing/model option combos run, no data leakage (z-score fitted on train only), stratified split OK, multi-class targets refused with a clear message, tabs 3–4 and the app start without errors. Minor point: `global.R` calls `install.packages()` when a package is missing (fine locally, avoid on shinyapps.io). Next: Phase 5 case study + Phase 6 tests/deploy. |
+| 2026-11-16 | UX review with the Intent skills (`docs/evaluation-ux.md`). Fixed 2 issues: multi-class targets are now trained one-vs-rest instead of being refused at the last step, and the tab 4 summary shows the run's own positive class/threshold with a stale-settings warning. Tested headless on iris (3 classes). Local, not pushed. Next: remaining UX fixes, Phase 5 case study. |
+| 2026-11-16 | Visual pass: `bslib` Bootstrap 5 theme (dark navbar, white sidebar cards, system font), `www/styles.css` replaces the inline styles in the 4 modules, plot colours taken from the `COULEURS` palette in `R/theme.R`. Checked in the browser on tabs 1–4, no server errors. Kept as a separate commit from the UX fixes. Local, not pushed. |

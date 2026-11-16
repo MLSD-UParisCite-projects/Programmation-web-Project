@@ -19,6 +19,7 @@ mod_modelisation_ui <- function(id) {
     sidebarPanel(
       h4("1. Découpage & Cible"),
       selectInput(ns("classe_positive"), "Classe positive (à détecter)", choices = NULL),
+      uiOutput(ns("note_multiclasse")),
       sliderInput(ns("part_train"), "Part d'entraînement (Train)",
                   min = 50, max = 90, value = 70, step = 5, post = " %"),
       checkboxInput(ns("stratifie"), "Découpage stratifié par classe", value = TRUE),
@@ -36,7 +37,7 @@ mod_modelisation_ui <- function(id) {
       checkboxInput(ns("activer_glm"), strong("Régression logistique (glm)"), value = TRUE),
       conditionalPanel(
         condition = sprintf("input['%s']", ns("activer_glm")),
-        div(style = "padding-left: 12px; border-left: 3px solid #cbd5e1; margin-bottom: 10px;",
+        div(class = "sous-options",
             checkboxInput(ns("glm_interactions"),
                           "Ajouter les interactions d'ordre 2", value = FALSE),
             helpText("Ajuste un modèle binomial (logit) sur l'échantillon train."))
@@ -46,7 +47,7 @@ mod_modelisation_ui <- function(id) {
       checkboxInput(ns("activer_rf"), strong("Forêt aléatoire (Random Forest)"), value = TRUE),
       conditionalPanel(
         condition = sprintf("input['%s']", ns("activer_rf")),
-        div(style = "padding-left: 12px; border-left: 3px solid #cbd5e1; margin-bottom: 10px;",
+        div(class = "sous-options",
             fluidRow(
               column(6, numericInput(ns("rf_ntree"), "Arbres (ntree)",
                                      value = 300, min = 50, max = 2000, step = 50)),
@@ -113,7 +114,7 @@ mod_modelisation_ui <- function(id) {
           br(),
           helpText("Chaque entraînement est archivé ci-dessous. Cliquez sur plusieurs lignes ",
                    "du tableau pour comparer leurs courbes ROC sur le même graphique."),
-          div(style = "margin-bottom: 10px;",
+          div(class = "barre-boutons",
               actionButton(ns("btn_suppr_runs"), "Supprimer les runs sélectionnés",
                            icon = icon("trash")),
               actionButton(ns("btn_vider_hist"), "Vider l'historique",
@@ -171,6 +172,31 @@ mod_modelisation_server <- function(id, preparation) {
                          max   = p)
     })
 
+    # Cible à plus de 2 classes : on explique le un contre tous
+    output$note_multiclasse <- renderUI({
+      d     <- preparation$data()
+      cible <- preparation$cible()
+      req(d, cible %in% names(d), input$classe_positive)
+      n_cl <- nlevels(droplevels(factor(d[[cible]])))
+      req(n_cl > 2)
+      helpText(icon("circle-info"),
+               sprintf(" Cible à %d classes : '%s' contre les %d autres classes regroupées (un contre tous).",
+                       n_cl, input$classe_positive, n_cl - 1))
+    })
+
+    # Paramètres de la barre latérale qui changent les résultats
+    # (gardés avec chaque run pour repérer un affichage périmé)
+    parametres_courants <- reactive({
+      list(donnees  = preparation$data(), cfg = preparation$transformations(),
+           classe   = input$classe_positive, seuil = input$seuil,
+           train    = input$part_train, stratifie = input$stratifie, seed = input$seed,
+           vars     = input$variables,
+           glm      = input$activer_glm, glm_inter = input$glm_interactions,
+           rf       = input$activer_rf, ntree = input$rf_ntree, mtry = input$rf_mtry,
+           nodesize = input$rf_nodesize, maxnodes = input$rf_maxnodes,
+           autotune = input$rf_autotune)
+    })
+
     # Entraînement au clic sur le bouton
     # ----
     observeEvent(input$btn_entrainer, {
@@ -192,13 +218,19 @@ mod_modelisation_server <- function(id, preparation) {
         return()
       }
 
+      params_run <- parametres_courants()
+      cl_pos     <- input$classe_positive
+      seuil      <- input$seuil
+
       y_propre <- droplevels(factor(d[[cible]][!is.na(d[[cible]])]))
-      if (nlevels(y_propre) != 2) {
-        showNotification(sprintf(
-          "La cible '%s' a %d classes : la modélisation binaire (ROC / logistique) nécessite exactement 2 classes.",
-          cible, nlevels(y_propre)), type = "error", duration = 8)
+      n_classes <- nlevels(y_propre)
+      if (n_classes < 2) {
+        showNotification(sprintf("La cible '%s' n'a qu'une seule classe : impossible d'entraîner un classifieur.",
+                                 cible), type = "error", duration = 8)
         return()
       }
+      # Plus de 2 classes : un contre tous (classe positive vs autres classes regroupées)
+      if (n_classes > 2) d <- binariser_cible(d, cible, cl_pos)
 
       # 1) Découpage train/test + transformations apprises sur train uniquement
       prep <- tryCatch(
@@ -230,12 +262,11 @@ mod_modelisation_server <- function(id, preparation) {
         return()
       }
 
-      cl_pos       <- input$classe_positive
-      seuil        <- input$seuil
-      split_txt    <- sprintf("%d/%d %s (seed=%d)",
+      split_txt    <- sprintf("%d/%d %s (seed=%d)%s",
                               input$part_train, 100 - input$part_train,
                               if (isTRUE(input$stratifie)) "strat." else "aléat.",
-                              input$seed)
+                              input$seed,
+                              if (n_classes > 2) sprintf(", un contre tous (%d classes)", n_classes) else "")
       pipeline_txt <- resumer_pipeline_texte(hist_prep, cfg)
 
       res_glm <- NULL; eval_glm <- NULL; imp_glm <- NULL
@@ -310,6 +341,10 @@ mod_modelisation_server <- function(id, preparation) {
       rv$dernier <- list(
         prep     = prep,
         cfg      = cfg,
+        classe_positive = cl_pos,      # valeurs utilisées pour CE run
+        seuil           = seuil,       # (le résumé ne doit pas lire les curseurs actuels)
+        n_classes       = n_classes,
+        params          = params_run,
         eval_glm = eval_glm,
         imp_glm  = imp_glm,
         eval_rf  = eval_rf,
@@ -331,23 +366,35 @@ mod_modelisation_server <- function(id, preparation) {
       cfg   <- d_res$cfg
       na_tot <- p$n_na_cible + p$n_na_train + p$n_na_test
 
+      # La barre latérale ne correspond plus au run affiché
+      perime <- !identical(parametres_courants(), d_res$params)
+
       tagList(
-        div(style = "background: #f8fafc; border-left: 4px solid #2563eb; padding: 10px; margin-bottom: 12px;",
+        if (perime) {
+          div(class = "encart encart-attention",
+              icon("triangle-exclamation"),
+              " Paramètres modifiés depuis cet entraînement : les résultats ci-dessous correspondent encore à l'ancien réglage. Cliquez sur 'Entraîner les modèles' pour les mettre à jour.")
+        },
+        div(class = "encart",
             strong(sprintf("Échantillons : Train = %d lignes%s  |  Test = %d lignes  |  Classe positive = '%s' (seuil = %.2f)",
                            nrow(p$train),
                            if (nrow(p$train) != p$n_train_avant_reeq)
                              sprintf(" (%d avant %s)", p$n_train_avant_reeq, cfg$desequilibre) else "",
                            nrow(p$test),
-                           input$classe_positive,
-                           input$seuil)),
+                           d_res$classe_positive,
+                           d_res$seuil)),
+            if (d_res$n_classes > 2) {
+              div(sprintf("Un contre tous : '%s' contre les %d autres classes regroupées.",
+                          d_res$classe_positive, d_res$n_classes - 1))
+            },
             br(),
-            span(style = "color: #475569;",
+            span(class = "discret",
                  sprintf("Transformations apprises sur Train uniquement : Imputation = %s | Normalisation = %s | Dummification = %s | Déséquilibre = %s",
                          cfg$imputation, cfg$normalisation,
                          if (isTRUE(cfg$dummification)) "oui" else "non",
                          cfg$desequilibre)),
             if (na_tot > 0) {
-              div(style = "color: #b45309; margin-top: 4px;",
+              div(class = "texte-attention", style = "margin-top: 4px;",
                   icon("triangle-exclamation"),
                   sprintf(" %d ligne(s) incomplète(s) (NA) retirée(s) avant modélisation (%d cible, %d train, %d test).",
                           na_tot, p$n_na_cible, p$n_na_train, p$n_na_test))
